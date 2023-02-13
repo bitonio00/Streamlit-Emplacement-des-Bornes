@@ -3,3 +3,4 @@ pydeck
 streamlit
 geopy
 scipy
+openpyxl
