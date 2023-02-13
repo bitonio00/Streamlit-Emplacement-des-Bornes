@@ -4,6 +4,8 @@ plotly
 pydeck
 streamlit
 bokeh
+sklearn.model
+sklearn.preprocessing
 sklearn
 geopy
 scipy
