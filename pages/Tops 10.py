@@ -1,3 +1,6 @@
+# --------------------------------------------------- Import des bibliothèques --------------------------------------------------- #
+
+
 import streamlit as st
 import pandas as pd
 import streamlit as st
@@ -6,13 +9,20 @@ from scipy.spatial import cKDTree
 from geopy.distance import great_circle
 
 
+# --------------------------------------------------- Configuration de la page streamlit --------------------------------------------------- #
+
+
 st.set_page_config(layout="wide", page_title="Proxigital", page_icon=":house:")
 
 st.markdown("Tops 10")
 
+
+# --------------------------------------------------- Fonctions de texte et d'affichage --------------------------------------------------- #
+
+
 def title():
     st.header("Analyse d'un potentiel point de vente pour Proxigital.")
-    st.subheader("Top 10 des meilleurs points de vente")
+    st.subheader("Cette page regroupe le top 10 des bornes sur l'année 2022 selon plusieurs critères.")
 
 def code_to_region(code): # traduction des codes région en région normale (merci chatgpt)
     regions = {
@@ -130,6 +140,12 @@ def main():
     top_10_contacts, mean_contacts = tops_10_contacts(bornes)
     top_10_paiements, means_paiements = tops_10_paiements(bornes)
     top_10_TT, means_TT = tops_10_TT(bornes)
-    st.write(top_10_contacts, mean_contacts)
+    l_col, r_col = st.columns(2)
+    with l_col:
+        st.subheader('Top 10 selon le nombre de contacts :')
+        st.write(top_10_contacts)
+    with r_col:
+        st.subheader('Top 10 selon le nombre de paiements : ')
+        st.write(top_10_paiements)
 
 main()
