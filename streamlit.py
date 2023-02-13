@@ -204,47 +204,7 @@ def cartographie_pdv(nearby_stores, df_potentiel_pdv, df_nearby_stores): # prép
 # --------------------------------------------------- Machine Learning --------------------------------------------------- #
 
 
-def prediction(df):
-    # Transformation des données
-    le = LabelEncoder()
-    df["region"] = le.fit_transform(df["region"])
-    df["commune"] = le.fit_transform(df["commune"])
-    df["gareLaPlusProche"] = le.fit_transform(df["gareLaPlusProche"])
 
-    # Normalisation des données
-    scaler = MinMaxScaler()
-    df[["adresseLongitude", "adresseLatitude", "populationCommune", "densite", "niveau_de_vie", "distanceGare",
-        "nombre_paiements", "nombre_contacts", "taux de transformation"]] = scaler.fit_transform(df[["adresseLongitude",
-                                                                                                     "adresseLatitude",
-                                                                                                     "populationCommune",
-                                                                                                     "densite",
-                                                                                                     "niveau_de_vie",
-                                                                                                     "distanceGare",
-                                                                                                     "nombre_paiements",
-                                                                                                     "nombre_contacts",
-                                                                                                     "taux de transformation"]])
-
-    # Normalisation des données
-    scaler = MinMaxScaler()
-    df[["adresseLongitude", "adresseLatitude", "populationCommune", "densite", "niveau_de_vie", "distanceGare",
-        "nombre_paiements", "nombre_contacts", "taux de transformation"]] = scaler.fit_transform(df[["adresseLongitude",
-                                                                                                     "adresseLatitude",
-                                                                                                     "populationCommune",
-                                                                                                     "densite",
-                                                                                                     "niveau_de_vie",
-                                                                                                     "distanceGare",
-                                                                                                     "nombre_paiements",
-                                                                                                     "nombre_contacts",
-                                                                                                     "taux de transformation"]])
-
-    df = df.drop(["code_barre"], axis=1)
-    # Séparation des données en ensembles d'entraînement et de test
-    X = df[['adresseLongitude', 'adresseLatitude', 'code_postal', 'region', 'commune', 'populationCommune', 'densite',
-            'niveau_de_vie', 'gareLaPlusProche', 'distanceGare', 'nombre_paiements', 'nombre_contacts']]
-    y = df['taux de transformation']
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=0)
-    classifier = DecisionTreeClassifier(random_state=0)
-    classifier.fit(X_train, y_train)
 
 
 # --------------------------------------------------- Main --------------------------------------------------- #
