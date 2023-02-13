@@ -4,4 +4,4 @@ streamlit
 geopy
 scipy
 openpyxl
-sklearn
+scikit-learn
