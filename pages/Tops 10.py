@@ -150,5 +150,5 @@ def main():
         st.write(top_10_paiements)
     st.write('Top 10 selon le taux de transformation :')
     st.write(top_10_TT)
-    
+
 main()

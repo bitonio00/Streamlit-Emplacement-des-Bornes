@@ -28,7 +28,7 @@ def page2():
 
 try:
 
-# --------------------------------------------------- Fonctions d'import et de préparation des dataframes --------------------------------------------------- #
+    # --------------------------------------------------- Fonctions d'import et de préparation des dataframes --------------------------------------------------- #
 
     def potentiel_pdv(bornes, address): # algo permettant de compter le nombre de points de vente dans un rayon de 10 km (à voir s'il faut aggrandir le rayon)
         df_potentiel_pdv = pd.DataFrame(columns=['adresseLatitude', 'adresseLongitude', 'commune', 'Région'])
@@ -68,7 +68,7 @@ try:
 
         return nearby_stores, df_potentiel_pdv
 
-    @st.cache
+    @st.cache(allow_output_mutation=True)
     def get_dataframe():
         transactions = pd.read_csv("transactions.csv", delimiter=";") # import du dataframe transactions 2022
         transactions.drop(columns=['heure', 'siret', 'representant_legal', 'partenaire', 'facture_int'], inplace=True) # je supprime les colonnes qui ne me serviront pas
@@ -204,7 +204,7 @@ try:
 
     # --------------------------------------------------- Machine Learning --------------------------------------------------- #
 
-    @st.cache
+
     def prediction(df):
         # Transformation des données
         le = LabelEncoder()
@@ -246,6 +246,41 @@ try:
         X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=0)
         classifier = DecisionTreeClassifier(random_state=0)
         classifier.fit(X_train, y_train)
+        classifier
+        return classifier
+
+
+    def predict_transformation_rate(adresseLatitude, adresseLongitude, commune, region, gareLaPlusProche, distanceGare,
+                                    densiteCommune, niveau_de_vieCommune, populationCommune, classifier):
+        # Transformation des données d'entrée
+        data = {'adresseLongitude': [adresseLongitude], 'adresseLatitude': [adresseLatitude], 'commune': [commune],
+                'region': [region],
+                'gareLaPlusProche': [gareLaPlusProche], 'distanceGare': [distanceGare], 'densite': [densiteCommune],
+                'niveau_de_vie': [niveau_de_vieCommune],
+                'populationCommune': [populationCommune]}
+        df = pd.DataFrame(data)
+        le = LabelEncoder()
+        df["region"] = le.fit_transform(df["region"])
+        df["commune"] = le.fit_transform(df["commune"])
+        df["gareLaPlusProche"] = le.fit_transform(df["gareLaPlusProche"])
+
+        # Normalisation des données
+        scaler = MinMaxScaler()
+        df[["adresseLongitude", "adresseLatitude", "populationCommune", "densite", "niveau_de_vie",
+            "distanceGare"]] = scaler.fit_transform(df[["adresseLongitude",
+                                                        "adresseLatitude",
+                                                        "populationCommune",
+                                                        "densite",
+                                                        "niveau_de_vie",
+                                                        "distanceGare"]])
+        X = df[['adresseLongitude', 'adresseLatitude', 'region', 'commune', 'populationCommune', 'densite', 'niveau_de_vie',
+                'gareLaPlusProche', 'distanceGare']]
+
+        # Prédiction du taux de transformation
+        y_pred = classifier.predict(X)
+        print(y_pred)
+
+        return y_pred[0]
 
 
     # --------------------------------------------------- Main --------------------------------------------------- #
@@ -257,7 +292,18 @@ try:
         adress = st.text_input(" ", placeholder="23-25 rue Chaptal 75009 Paris")
         bornes = get_dataframe()
         nearby_stores, df_potentiel_pdv = potentiel_pdv(bornes, adress)
-        bornes
+        classifier = prediction(bornes)
+        y_pred = predict_transformation_rate(df_potentiel_pdv['adresseLatitude'],
+                                             df_potentiel_pdv['adresseLongitude'],
+                                             df_potentiel_pdv['commune'],
+                                             df_potentiel_pdv['Région'],
+                                             df_potentiel_pdv['gareLaPlusProche'],
+                                             df_potentiel_pdv['distanceGare'],
+                                             df_potentiel_pdv['densite'],
+                                             df_potentiel_pdv['niveau_de_vie'],
+                                             df_potentiel_pdv['populationCommune'],
+                                             classifier)
+        st.write(y_pred)
 
     main()
 
