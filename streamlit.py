@@ -9,7 +9,7 @@ from scipy.spatial import cKDTree
 from geopy.distance import great_circle
 from sklearn.tree import DecisionTreeClassifier
 from sklearn import preprocessing
-from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import MinMaxScaler, LabelEncoder
 
 # --------------------------------------------------- Configuration de la page streamlit --------------------------------------------------- #
 
