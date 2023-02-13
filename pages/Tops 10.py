@@ -143,10 +143,12 @@ def main():
     top_10_TT, means_TT = tops_10_TT(bornes)
     l_col, r_col = st.columns(2)
     with l_col:
-        st.subheader('Top 10 selon le nombre de contacts :')
+        st.write('Top 10 selon le nombre de contacts :')
         st.write(top_10_contacts)
     with r_col:
-        st.subheader('Top 10 selon le nombre de paiements : ')
+        st.write('Top 10 selon le nombre de paiements :')
         st.write(top_10_paiements)
-
+    st.write('Top 10 selon le taux de transformation :')
+    st.write(top_10_TT)
+    
 main()
