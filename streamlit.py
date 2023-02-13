@@ -7,7 +7,9 @@ from geopy.geocoders import Nominatim
 from geopy.distance import geodesic
 from scipy.spatial import cKDTree
 from geopy.distance import great_circle
-
+from sklearn.tree import DecisionTreeClassifier
+from sklearn import preprocessing
+from sklearn.preprocessing import MinMaxScaler
 
 # --------------------------------------------------- Configuration de la page streamlit --------------------------------------------------- #
 
@@ -202,14 +204,55 @@ try:
 
     # --------------------------------------------------- Machine Learning --------------------------------------------------- #
 
+    @st.cache
+    def prediction(df):
+        # Transformation des données
+        le = LabelEncoder()
+        df["region"] = le.fit_transform(df["region"])
+        df["commune"] = le.fit_transform(df["commune"])
+        df["gareLaPlusProche"] = le.fit_transform(df["gareLaPlusProche"])
 
-    # sorti du code pour test pour le moment
+        # Normalisation des données
+        scaler = MinMaxScaler()
+        df[["adresseLongitude", "adresseLatitude", "populationCommune", "densite", "niveau_de_vie", "distanceGare",
+            "nombre_paiements", "nombre_contacts", "taux de transformation"]] = scaler.fit_transform(df[["adresseLongitude",
+                                                                                                         "adresseLatitude",
+                                                                                                         "populationCommune",
+                                                                                                         "densite",
+                                                                                                         "niveau_de_vie",
+                                                                                                         "distanceGare",
+                                                                                                         "nombre_paiements",
+                                                                                                         "nombre_contacts",
+                                                                                                         "taux de transformation"]])
+
+        # Normalisation des données
+        scaler = MinMaxScaler()
+        df[["adresseLongitude", "adresseLatitude", "populationCommune", "densite", "niveau_de_vie", "distanceGare",
+            "nombre_paiements", "nombre_contacts", "taux de transformation"]] = scaler.fit_transform(df[["adresseLongitude",
+                                                                                                         "adresseLatitude",
+                                                                                                         "populationCommune",
+                                                                                                         "densite",
+                                                                                                         "niveau_de_vie",
+                                                                                                         "distanceGare",
+                                                                                                         "nombre_paiements",
+                                                                                                         "nombre_contacts",
+                                                                                                         "taux de transformation"]])
+
+        df = df.drop(["code_barre"], axis=1)
+        # Séparation des données en ensembles d'entraînement et de test
+        X = df[['adresseLongitude', 'adresseLatitude', 'code_postal', 'region', 'commune', 'populationCommune', 'densite',
+                'niveau_de_vie', 'gareLaPlusProche', 'distanceGare', 'nombre_paiements', 'nombre_contacts']]
+        y = df['taux de transformation']
+        X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=0)
+        classifier = DecisionTreeClassifier(random_state=0)
+        classifier.fit(X_train, y_train)
 
 
     # --------------------------------------------------- Main --------------------------------------------------- #
 
 
     def main(): # appel des fonctions nécessaires
+
         title()
         adress = st.text_input(" ", placeholder="23-25 rue Chaptal 75009 Paris")
         bornes = get_dataframe()
