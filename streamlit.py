@@ -14,9 +14,6 @@ from geopy.distance import great_circle
 
 st.set_page_config(layout="wide", page_title="Proxigital", page_icon=":house:")
 
-st.markdown("#Home")
-st.sidebar.markdown("Home")
-
 def home():
     st.markdown("#Home")
     st.sidebar.markdown("#Home")
@@ -26,13 +23,14 @@ def page2():
     st.sidebar.markdown("#Tops 10")
 
 
-# --------------------------------------------------- Fonctions d'import et de préparation des dataframes --------------------------------------------------- #
-
 
 try:
 
+# --------------------------------------------------- Fonctions d'import et de préparation des dataframes --------------------------------------------------- #
+
     def potentiel_pdv(bornes, address): # algo permettant de compter le nombre de points de vente dans un rayon de 10 km (à voir s'il faut aggrandir le rayon)
         df_potentiel_pdv = pd.DataFrame(columns=['adresseLatitude', 'adresseLongitude', 'commune', 'Région'])
+        pop_commune = pd.read_excel('pop commune.xlsx')
         df_gares = pd.read_csv("liste-des-gares.csv", delimiter =";") # import de la liste des gares
         df_densite = pd.read_excel('FET2021-19.xlsx')
         df_niveau_de_vie = pd.read_excel('communes_niveau_de_vie.xlsx')
@@ -60,6 +58,7 @@ try:
         df_potentiel_pdv = df_potentiel_pdv.merge(df_densite, on='commune', how='left')
         df_potentiel_pdv = df_potentiel_pdv.merge(df_niveau_de_vie, on='commune', how='left')
         df_potentiel_pdv['densite'] = df_potentiel_pdv['densite'].apply(str_to_densite) # traduction de la densité en score
+        df_potentiel_pdv = df_potentiel_pdv.merge(pop_commune, on='commune', how='left')
 
 
         st.write("Il y a", nearby_stores, "point(s) de vente dans un rayon de 10 kilomètres")
@@ -212,7 +211,7 @@ try:
 
     def main(): # appel des fonctions nécessaires
         title()
-        adress = st.text_input(" ")
+        adress = st.text_input(" ", placeholder="23-25 rue Chaptal 75009 Paris")
         bornes = get_dataframe()
         nearby_stores, df_potentiel_pdv = potentiel_pdv(bornes, adress)
         bornes
