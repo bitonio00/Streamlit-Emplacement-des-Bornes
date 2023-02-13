@@ -3,8 +3,6 @@
 
 import streamlit as st
 import pandas as pd
-from sklearn.preprocessing import LabelEncoder, MinMaxScaler
-from sklearn.model_selection import train_test_split
 from geopy.geocoders import Nominatim
 from geopy.distance import geodesic
 from scipy.spatial import cKDTree

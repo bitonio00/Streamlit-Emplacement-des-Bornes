@@ -1,6 +1,5 @@
 pandas
 pydeck
 streamlit
-sklearn
 geopy
 scipy
