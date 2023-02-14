@@ -8,8 +8,8 @@ from geopy.distance import geodesic
 from scipy.spatial import cKDTree
 from geopy.distance import great_circle
 from sklearn.tree import DecisionTreeClassifier
-from sklearn import preprocessing
 from sklearn.preprocessing import MinMaxScaler, LabelEncoder
+
 
 # --------------------------------------------------- Configuration de la page streamlit --------------------------------------------------- #
 
@@ -25,10 +25,85 @@ def page2():
     st.sidebar.markdown("#Tops 10")
 
 
-
 try:
 
+
     # --------------------------------------------------- Fonctions d'import et de préparation des dataframes --------------------------------------------------- #
+
+    @st.cache(allow_output_mutation=True)
+    def get_dataframe():
+        transactions = pd.read_csv("transactions.csv", delimiter=";")  # import du dataframe transactions 2022
+        transactions.drop(columns=['heure', 'siret', 'representant_legal', 'partenaire', 'facture_int'],
+                          inplace=True)  # je supprime les colonnes qui ne me serviront pas
+        first_column = transactions.pop(
+            "code_barre")  # je déplace la colonne code_barre en premier pour mieux la voir (la plus importante)
+        transactions.insert(0, 'code_barre', first_column)
+
+        df_gares = pd.read_csv("liste-des-gares.csv", delimiter=";")  # import de la liste des gares
+        df_gares.drop(
+            columns=['code_uic', 'fret', 'voyageurs', 'code_ligne', 'rg_troncon', 'pk', 'idgaia', 'x_l93', 'y_l93',
+                     'c_geo',
+                     'geo_point_2d', 'geo_shape', 'idreseau'],
+            inplace=True)  # je supprime les colonnes qui ne me serviront pas
+
+        bornes = pd.read_excel(
+            "20230130 - Organisations.xlsx")  # import de la base organisations à jour du 1er février 2023
+        bornes.drop(bornes[(bornes['borneInstallee'] == 'Non')].index,
+                    inplace=True)  # je supprime les bornes pas installées (à voir plus tard s'il faut les laisser pour améliorer l'algorithme de machine learning
+        bornes.drop(
+            columns=['idOrganisation', 'dateEnregistrement', 'siret', 'raisonSociale', 'codeDouanes', 'adresseLigne2',
+                     'adresseLigne3', 'representantLegalNom', 'representantLegalMobile', 'representantLegalEmail',
+                     'representantLegalCiv', 'representantLegalPrenom', 'aEuUneBorne', 'exDebutBorneOrga',
+                     'exFinBorneOrga',
+                     'borneVersion', 'borneVersionNom', 'dateLiaisonBorneOrga', 'datePremiereInstallBorne',
+                     'demandeInstallationStatut', 'demandeInstallationDateStatut', 'demandeInstallationDatePlannif',
+                     'servicedonsADOSSPP', 'servicecataloguePDFUssac', 'servicecontactFormAIBImmo',
+                     'servicecontactFormIADCourbot', 'servicecontactFormIADMagne', 'servicecontactFormSAFIDamien',
+                     'servicehorairesPDFCassis', 'servicecontactFormCAPI', 'servicemeilleurTaux', 'serviceCarteGriseFI',
+                     'borneInstallee', 'nomCommercial', 'adresseCodePostal', 'adresseCommune'],
+            inplace=True)  # drop des colonnes inutiles
+        first_column = bornes.pop('borneCodeBarre')  # déplacement de code_barre en premier
+        bornes.insert(0, 'code_barre', first_column)
+        bornes.dropna(subset=['adresseLatitude', 'adresseLongitude'],
+                      inplace=True)  # suppression des bornes qui n'ont pas de coordoonnées gps car font planter l'algo geopy
+
+        merged_data = pd.merge(transactions, bornes, left_on='code_barre',
+                               right_on='code_barre')  # merge des bases bornes et transactions
+        merged_data = merged_data[
+            ['code_barre', 'adresseLongitude', 'adresseLatitude', 'adresseLigne1', 'code_postal', 'commune',
+             'populationCommune', 'statut_paiement',
+             'adresseCodeRegion']]  # je garde uniquement les colonnes qui m'intéressent
+        merged_data['region'] = merged_data['adresseCodeRegion'].apply(
+            code_to_region)  # traduction du code région en région pleine (str)
+
+        #merged_data['gareLaPlusProche'], merged_data['distanceGare'] = zip(*merged_data.apply(closest_station, axis=1, stations=df_gares))
+
+        merged_data['nombre_paiements'] = merged_data[merged_data['statut_paiement'] == 'Payé'].groupby('code_barre')[
+            'statut_paiement'].transform(
+            'count')  # assigne à chaque borne son nombre de contacts et son nombre de ventes
+        df_grouped = merged_data.groupby('code_barre').size().reset_index(name='nombre_contacts')
+        merged_data = merged_data.merge(df_grouped, on='code_barre', how='left')  # je les regroupe par code barre
+        df_densite = pd.read_excel('FET2021-19.xlsx')
+        df_niveau_de_vie = pd.read_excel('communes_niveau_de_vie.xlsx')
+        merged_data = merged_data.merge(df_densite, on='commune', how='left')
+        merged_data['densite'] = merged_data['densite'].apply(str_to_densite)  # traduction de la densité en score
+        merged_data = merged_data.merge(df_niveau_de_vie, on='commune', how='left')
+        merged_data = merged_data.groupby('code_barre').agg({'adresseLongitude': 'first',
+                                                             'adresseLatitude': 'first',
+                                                             'adresseLigne1': 'first',
+                                                             'code_postal': 'first',
+                                                             'region': 'first',
+                                                             'commune': 'first',
+                                                             'populationCommune': 'first',
+                                                             'densite': 'first',
+                                                             'niveau_de_vie': 'first',
+                                                             #'gareLaPlusProche': 'first',
+                                                             #'distanceGare': 'first',
+                                                             'nombre_paiements': 'first',
+                                                             'nombre_contacts': 'first'})  # je remets dans l'ordre les colonnes
+        merged_data['taux de transformation'] = (merged_data['nombre_paiements'] / merged_data[
+            'nombre_contacts']) * 100  # rajout de la colonne taux de transformation
+        return merged_data  # je retourne le dataframe complet et prêt pour ne plus y toucher par la suite (mise en cache pour executer qu'une seule fois)
 
     def potentiel_pdv(bornes, address): # algo permettant de compter le nombre de points de vente dans un rayon de 10 km (à voir s'il faut aggrandir le rayon)
         df_potentiel_pdv = pd.DataFrame(columns=['adresseLatitude', 'adresseLongitude', 'commune', 'Région'])
@@ -67,64 +142,6 @@ try:
         st.write("Les données du potentiel point de vente sont stockées ici : ", df_potentiel_pdv)
 
         return nearby_stores, df_potentiel_pdv
-
-    #@st.cache
-    def get_dataframe():
-        transactions = pd.read_csv("transactions.csv", delimiter=";") # import du dataframe transactions 2022
-        transactions.drop(columns=['heure', 'siret', 'representant_legal', 'partenaire', 'facture_int'], inplace=True) # je supprime les colonnes qui ne me serviront pas
-        first_column = transactions.pop("code_barre") # je déplace la colonne code_barre en premier pour mieux la voir (la plus importante)
-        transactions.insert(0, 'code_barre', first_column)
-
-        df_gares = pd.read_csv("liste-des-gares.csv", delimiter =";") # import de la liste des gares
-        df_gares.drop(columns=['code_uic', 'fret', 'voyageurs', 'code_ligne', 'rg_troncon', 'pk', 'idgaia', 'x_l93', 'y_l93', 'c_geo',
-                     'geo_point_2d', 'geo_shape', 'idreseau'], inplace=True) # je supprime les colonnes qui ne me serviront pas
-
-        bornes = pd.read_excel("20230130 - Organisations.xlsx") # import de la base organisations à jour du 1er février 2023
-        bornes.drop(bornes[(bornes['borneInstallee'] == 'Non')].index, inplace=True) # je supprime les bornes pas installées (à voir plus tard s'il faut les laisser pour améliorer l'algorithme de machine learning
-        bornes.drop(
-            columns=['idOrganisation', 'dateEnregistrement', 'siret', 'raisonSociale', 'codeDouanes', 'adresseLigne2',
-                     'adresseLigne3', 'representantLegalNom', 'representantLegalMobile', 'representantLegalEmail',
-                     'representantLegalCiv', 'representantLegalPrenom', 'aEuUneBorne', 'exDebutBorneOrga', 'exFinBorneOrga',
-                     'borneVersion', 'borneVersionNom', 'dateLiaisonBorneOrga', 'datePremiereInstallBorne',
-                     'demandeInstallationStatut', 'demandeInstallationDateStatut', 'demandeInstallationDatePlannif',
-                     'servicedonsADOSSPP', 'servicecataloguePDFUssac', 'servicecontactFormAIBImmo',
-                     'servicecontactFormIADCourbot', 'servicecontactFormIADMagne', 'servicecontactFormSAFIDamien',
-                     'servicehorairesPDFCassis', 'servicecontactFormCAPI', 'servicemeilleurTaux', 'serviceCarteGriseFI',
-                     'borneInstallee', 'nomCommercial', 'adresseCodePostal', 'adresseCommune'], inplace=True) # drop des colonnes inutiles
-        first_column = bornes.pop('borneCodeBarre') # déplacement de code_barre en premier
-        bornes.insert(0, 'code_barre', first_column)
-        bornes.dropna(subset=['adresseLatitude', 'adresseLongitude'], inplace=True) # suppression des bornes qui n'ont pas de coordoonnées gps car font planter l'algo geopy
-
-        merged_data = pd.merge(transactions, bornes, left_on='code_barre', right_on='code_barre') # merge des bases bornes et transactions
-        merged_data = merged_data[['code_barre', 'adresseLongitude', 'adresseLatitude', 'adresseLigne1', 'code_postal', 'commune', 'populationCommune', 'statut_paiement', 'adresseCodeRegion']] # je garde uniquement les colonnes qui m'intéressent
-        merged_data['region'] = merged_data['adresseCodeRegion'].apply(code_to_region) # traduction du code région en région pleine (str)
-
-        merged_data['gareLaPlusProche'], merged_data['distanceGare'] = zip(
-            *merged_data.apply(closest_station, axis=1, stations=df_gares))
-
-        merged_data['nombre_paiements'] = merged_data[merged_data['statut_paiement'] == 'Payé'].groupby('code_barre')['statut_paiement'].transform('count') # assigne à chaque borne son nombre de contacts et son nombre de ventes
-        df_grouped = merged_data.groupby('code_barre').size().reset_index(name='nombre_contacts')
-        merged_data = merged_data.merge(df_grouped, on='code_barre', how='left') # je les regroupe par code barre
-        df_densite = pd.read_excel('FET2021-19.xlsx')
-        df_niveau_de_vie = pd.read_excel('communes_niveau_de_vie.xlsx')
-        merged_data = merged_data.merge(df_densite, on='commune', how='left')
-        merged_data['densite'] = merged_data['densite'].apply(str_to_densite) # traduction de la densité en score
-        merged_data = merged_data.merge(df_niveau_de_vie, on='commune', how='left')
-        merged_data = merged_data.groupby('code_barre').agg({'adresseLongitude': 'first',
-                                                'adresseLatitude': 'first',
-                                                'adresseLigne1': 'first',
-                                                'code_postal': 'first',
-                                                'region': 'first',
-                                                'commune':'first',
-                                                'populationCommune':'first',
-                                                'densite':'first',
-                                                'niveau_de_vie':'first',
-                                                'gareLaPlusProche':'first',
-                                                'distanceGare': 'first',
-                                                'nombre_paiements': 'first',
-                                                'nombre_contacts': 'first'}) # je remets dans l'ordre les colonnes
-        merged_data ['taux de transformation'] = (merged_data['nombre_paiements'] / merged_data['nombre_contacts']) * 100 # rajout de la colonne taux de transformation
-        return merged_data # je retourne le dataframe complet et prêt pour ne plus y toucher par la suite (mise en cache pour executer qu'une seule fois)
 
 
     # --------------------------------------------------- Fonctions de texte et d'affichage --------------------------------------------------- #
@@ -287,7 +304,6 @@ try:
 
 
     def main(): # appel des fonctions nécessaires
-
         title()
         adress = st.text_input(" ", placeholder="23-25 rue Chaptal 75009 Paris")
         bornes = get_dataframe()

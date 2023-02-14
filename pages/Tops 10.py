@@ -62,7 +62,8 @@ def str_to_densite(code): # transforme le str de densité en score
     }
     return densite.get(code, "Région non définie")
 
-@st.cache
+
+@st.cache(allow_output_mutation=True)
 def get_dataframe():
     transactions = pd.read_csv("transactions.csv", delimiter=";") # import du dataframe transactions 2022
     transactions.drop(columns=['heure', 'siret', 'representant_legal', 'partenaire', 'facture_int'], inplace=True) # je supprime les colonnes qui ne me serviront pas
