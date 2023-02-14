@@ -121,35 +121,58 @@ def get_dataframe():
     merged_data ['taux de transformation'] = (merged_data['nombre_paiements'] / merged_data['nombre_contacts']) * 100 # rajout de la colonne taux de transformation
     return merged_data # je retourne le dataframe complet et prêt pour ne plus y toucher par la suite
 
+def mean_calculator(df, columns):
+    mean_df = pd.DataFrame(columns=["Moyenne"])
+    for col in columns:
+        mean = df[col].mean()
+        mean_df = mean_df.append(pd.DataFrame({"Moyenne": [mean]}, index=[col]))
+    return mean_df
+
 def tops_10_contacts(df):
     df_top_10_contacts = df.sort_values(by='nombre_contacts', ascending=False).head(10)
-    mean_contacts = df_top_10_contacts.mean()
+    columns = ["populationCommune", "densite", "niveau_de_vie", "distanceGare", "nombre_paiements", "nombre_contacts", "taux de transformation"]
+    mean_contacts= mean_calculator(df_top_10_contacts, columns)
     return df_top_10_contacts, mean_contacts
 
 def tops_10_paiements(df):
     df_top_10_paiements = df.sort_values(by='nombre_paiements', ascending=False).head(10)
-    mean_TT = df_top_10_paiements.mean()
-    return df_top_10_paiements, mean_TT
+    columns = ["populationCommune", "densite", "niveau_de_vie", "distanceGare", "nombre_paiements", "nombre_contacts", "taux de transformation"]
+    mean_paiements = mean_calculator(df_top_10_paiements, columns)
+    return df_top_10_paiements, mean_paiements
 
 def tops_10_TT(df):
     df_top_10_TT = df.sort_values(by='taux de transformation', ascending=False).head(10)
-    mean_TT = df_top_10_TT.mean()
+    columns = ["populationCommune", "densite", "niveau_de_vie", "distanceGare", "nombre_paiements", "nombre_contacts","taux de transformation"]
+    mean_TT = mean_calculator(df_top_10_TT, columns)
     return df_top_10_TT, mean_TT
 
 def main():
     title()
     bornes = get_dataframe()
     top_10_contacts, mean_contacts = tops_10_contacts(bornes)
-    top_10_paiements, means_paiements = tops_10_paiements(bornes)
-    top_10_TT, means_TT = tops_10_TT(bornes)
+    top_10_paiements, mean_paiements = tops_10_paiements(bornes)
+    top_10_TT, mean_TT = tops_10_TT(bornes)
+
     l_col, r_col = st.columns(2)
     with l_col:
-        st.write('Top 10 selon le nombre de contacts :')
+        st.subheader('Top 10 selon le nombre de contacts :')
         st.write(top_10_contacts)
     with r_col:
-        st.write('Top 10 selon le nombre de paiements :')
+        st.subheader('Moyenne de ce top 10 :')
+        st.write(mean_contacts)
+    l_col, r_col = st.columns(2)
+    with l_col:
+        st.subheader('Top 10 selon le nombre de paiements :')
         st.write(top_10_paiements)
-    st.write('Top 10 selon le taux de transformation :')
-    st.write(top_10_TT)
+    with r_col:
+        st.subheader('Moyenne de ce top 10 :')
+        st.write(mean_paiements)
+    l_col, r_col = st.columns(2)
+    with l_col:
+        st.subheader('Top 10 selon le taux de transformation :')
+        st.write(top_10_TT)
+    with r_col:
+        st.subheader('Moyenne de ce top 10 :')
+        st.write(mean_TT)
 
 main()
