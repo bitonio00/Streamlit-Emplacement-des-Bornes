@@ -68,7 +68,7 @@ try:
 
         return nearby_stores, df_potentiel_pdv
 
-    #@st.cache(allow_output_mutation=True)
+    @st.cache(allow_output_mutation=True)
     def get_dataframe():
         transactions = pd.read_csv("transactions.csv", delimiter=";") # import du dataframe transactions 2022
         transactions.drop(columns=['heure', 'siret', 'representant_legal', 'partenaire', 'facture_int'], inplace=True) # je supprime les colonnes qui ne me serviront pas
