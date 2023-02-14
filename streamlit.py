@@ -73,8 +73,7 @@ try:
             ['code_barre', 'adresseLongitude', 'adresseLatitude', 'adresseLigne1', 'code_postal', 'commune',
              'populationCommune', 'statut_paiement',
              'adresseCodeRegion']]  # je garde uniquement les colonnes qui m'intéressent
-        merged_data['region'] = merged_data['adresseCodeRegion'].apply(
-            code_to_region)  # traduction du code région en région pleine (str)
+        merged_data['region'] = merged_data['adresseCodeRegion'].apply(code_to_region)  # traduction du code région en région pleine (str)
 
         #merged_data['gareLaPlusProche'], merged_data['distanceGare'] = zip(*merged_data.apply(closest_station, axis=1, stations=df_gares))
 
@@ -308,18 +307,7 @@ try:
         adress = st.text_input(" ", placeholder="23-25 rue Chaptal 75009 Paris")
         bornes = get_dataframe()
         nearby_stores, df_potentiel_pdv = potentiel_pdv(bornes, adress)
-        classifier = prediction(bornes)
-        y_pred = predict_transformation_rate(df_potentiel_pdv['adresseLatitude'],
-                                             df_potentiel_pdv['adresseLongitude'],
-                                             df_potentiel_pdv['commune'],
-                                             df_potentiel_pdv['Région'],
-                                             df_potentiel_pdv['gareLaPlusProche'],
-                                             df_potentiel_pdv['distanceGare'],
-                                             df_potentiel_pdv['densite'],
-                                             df_potentiel_pdv['niveau_de_vie'],
-                                             df_potentiel_pdv['populationCommune'],
-                                             classifier)
-        st.write(y_pred)
+        bornes
 
     main()
 
