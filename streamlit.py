@@ -306,7 +306,7 @@ try:
         title()
         adress = st.text_input(" ", placeholder="23-25 rue Chaptal 75009 Paris")
         bornes = get_dataframe()
-        nearby_stores, df_potentiel_pdv = potentiel_pdv(bornes, adress)
+        potentiel_pdv(bornes, adress)
         bornes
 
     main()

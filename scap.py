@@ -1,4 +1,4 @@
-import re
+'''import re
 import pandas as pd
 import PyPDF4
 
@@ -26,4 +26,4 @@ with open('Liste-de-garage.pdf', 'rb') as pdf_file:
     df = pd.DataFrame(adresses_garages, columns=['adresse'])
 
     # Affiche le DataFrame
-    print(df)
+    print(df)'''
